@@ -27,23 +27,6 @@ Everything runs locally in a single HTML file. It has no dependencies and no bui
 - **Export**: Copy to the clipboard or save as a `.txt` file. Revert takes you back to the original conversion.
 - **Apple-inspired UI**: Supports light and dark mode and adapts to smaller screens.
 
-## Getting Started
-
-```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
-open ascii_art.html   # macOS. You can also just double-click the file.
-```
-
-That's it. You don't need a server or `npm install`.
-
-### Hosting on GitHub Pages
-
-1. Rename `ascii_art.html` to `index.html`. GitHub Pages serves `index.html` by default.
-2. Push the repository to GitHub.
-3. Go to **Settings → Pages**, set the source to the `main` branch with the `/ (root)` folder, and save.
-4. The app will be live at `https://<your-username>.github.io/<repo-name>/`.
-
 ## How to Use
 
 1. Drop an image onto the upload area, or click it to browse.
