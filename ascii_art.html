@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII Studio</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --glass: rgba(255,255,255,0.72);
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #86868b;
+  --sep: rgba(0,0,0,0.08);
+  --fill: rgba(120,120,128,0.12);
+  --fill-2: rgba(120,120,128,0.2);
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --success: #248a3d;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.06);
+  --seg-active: #ffffff;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Apple SD Gothic Neo", "Pretendard", "Helvetica Neue", system-ui, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, Monaco, monospace;
+  --r-lg: 20px;
+  --r-md: 12px;
+  --r-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --glass: rgba(22,22,23,0.72);
+    --text: #f5f5f7;
+    --text-2: #a1a1a6;
+    --text-3: #8e8e93;
+    --sep: rgba(255,255,255,0.1);
+    --fill: rgba(120,120,128,0.24);
+    --fill-2: rgba(120,120,128,0.36);
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --success: #30d158;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 24px rgba(0,0,0,0.3);
+    --seg-active: #636366;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+  min-height: 100vh;
+}
+button, input, select { font-family: inherit; letter-spacing: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+/* ── 상단 내비게이션 ── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--sep);
+}
+.nav-inner { max-width: 1280px; margin: 0 auto; height: 52px; padding: 0 22px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.logo { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-family: var(--mono); font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #5e5ce6, #0a84ff 55%, #64d2ff); }
+.nav-sub { font-size: 12px; color: var(--text-3); }
+
+/* ── 레이아웃 ── */
+.app { max-width: 1280px; margin: 0 auto; padding: 40px 22px 80px; }
+
+.layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 24px; align-items: start; }
+.sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
+.stage { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { position: static; }
+}
+
+.card { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 18px; }
+.card.flush { padding: 0; overflow: hidden; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 12px; }
+
+/* ── 드롭존 ── */
+.drop-zone {
+  position: relative; border-radius: 16px; padding: 30px 16px; text-align: center; cursor: pointer;
+  background: var(--fill); border: 1.5px dashed transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.drop-zone:hover { background: var(--fill-2); }
+.drop-zone.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); transform: scale(1.01); }
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.dz-icon { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; background: var(--card); color: var(--accent); box-shadow: var(--shadow); }
+.dz-title { font-size: 15px; font-weight: 600; }
+.dz-sub { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+.preview-row { display: none; gap: 12px; align-items: center; margin-top: 14px; }
+.preview-row.on { display: flex; }
+.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--r-md); background: var(--fill); flex-shrink: 0; }
+.file-info { min-width: 0; }
+.file-info p { font-size: 12px; color: var(--text-3); line-height: 1.6; }
+.file-info p:first-child { font-size: 14px; }
+.file-info strong { color: var(--text); font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── 설정 리스트 (iOS Settings 스타일) ── */
+.grid3, .grid2 { display: flex; flex-direction: column; }
+.ctrl { padding: 12px 0; border-bottom: 0.5px solid var(--sep); }
+.grid3 .ctrl:last-child, .grid2 .ctrl:last-child { border-bottom: none; padding-bottom: 2px; }
+.grid3 .ctrl:first-child, .grid2 .ctrl:first-child { padding-top: 2px; }
+.ctrl label { font-size: 14px; font-weight: 500; color: var(--text); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.val { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.hidden-row { display: none; }
+.hidden-row.on { display: block; }
+#customRow { border-top: 0.5px solid var(--sep); border-bottom: none; margin-top: 12px; padding-bottom: 0; }
+
+select, .ctrl input[type=text], .sel-row input[type=text], .fill-input-row input[type=text] {
+  width: 100%; font-size: 14px; padding: 9px 12px; border-radius: 10px; border: none; outline: none;
+  background: var(--fill); color: var(--text);
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.ctrl input[type=text], .sel-row input[type=text], .fill-input-row input[type=text] { font-family: var(--mono); font-size: 13px; }
+select:focus, input[type=text]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+input::placeholder { color: var(--text-3); }
+select {
+  appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+
+/* iOS 슬라이더 */
+input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; cursor: pointer; outline: none;
+  background: linear-gradient(var(--accent), var(--accent)) 0 / var(--p, 50%) 100% no-repeat, var(--fill-2);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0.5px 4px rgba(0,0,0,0.12), 0 3px 8px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.04);
+  transition: transform 0.15s ease;
+}
+input[type=range]:active::-webkit-slider-thumb { transform: scale(1.12); }
+input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: none; border-radius: 50%; background: #fff; box-shadow: 0 0.5px 4px rgba(0,0,0,0.12), 0 3px 8px rgba(0,0,0,0.15); }
+
+/* ── 버튼 ── */
+.btn-row { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.big-btn {
+  width: 100%; padding: 14px 24px; font-size: 16px; font-weight: 600; border-radius: 980px; border: none;
+  background: var(--accent); color: #fff; cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.big-btn:hover { background: var(--accent-hover); }
+.big-btn:active { transform: scale(0.98); }
+.tip { font-size: 12px; color: var(--text-3); text-align: center; line-height: 1.5; }
+
+.sm-btn {
+  font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 980px; border: none;
+  background: var(--fill); color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.sm-btn:hover { background: var(--fill-2); }
+.sm-btn:active { transform: scale(0.96); }
+.sm-btn.primary { background: var(--accent); color: #fff; }
+.sm-btn.primary:hover { background: var(--accent-hover); }
+
+/* ── 결과 영역 ── */
+.output-wrap { display: none; flex-direction: column; gap: 16px; animation: rise 0.45s cubic-bezier(.2,.8,.2,1); }
+.output-wrap.on { display: flex; }
+.output-wrap.on ~ .empty-state { display: none; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.out-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.out-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.out-title { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
+.out-right { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.picker-wrap { position: relative; display: inline-block; }
+.char-picker {
+  display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 99; width: 300px; padding: 12px;
+  background: var(--glass); backdrop-filter: saturate(180%) blur(24px); -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 0.5px solid var(--sep); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+.char-picker.on { display: block; animation: pop 0.18s ease; }
+@keyframes pop { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+.picker-title { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 4px; max-height: 180px; overflow-y: auto; }
+.char-btn { font-family: var(--mono); font-size: 14px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--fill); cursor: pointer; color: var(--text); transition: background 0.1s ease, transform 0.1s ease; user-select: none; }
+.char-btn:hover { background: var(--accent); color: #fff; transform: scale(1.06); }
+
+.edit-hint { font-size: 13px; color: var(--text-3); text-align: center; }
+.edit-hint span { color: var(--text); font-weight: 500; }
+
+.ascii-box { background: #ffffff; border-radius: var(--r-lg); overflow: auto; padding: 20px 24px; box-shadow: var(--shadow); max-height: 72vh; }
+.ascii-box pre { font-family: 'Courier New', monospace; font-size: 6.5px; line-height: 1.0; white-space: pre; display: block; letter-spacing: 0; outline: none; color: #111; width: max-content; margin: 0 auto; }
+.ascii-box pre[contenteditable="true"]:focus { outline: none; }
+.ascii-box pre ::selection, .ascii-box pre::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+canvas { display: none; }
+
+.empty-state {
+  min-height: 480px; border-radius: var(--r-lg); background: var(--card); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 24px; gap: 14px;
+}
+.empty-art { font-family: var(--mono); font-size: 11px; line-height: 1.1; color: var(--text-3); white-space: pre; opacity: 0.7; }
+.empty-state h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+.empty-state p { font-size: 14px; color: var(--text-3); }
+
+/* ── 인스펙터 패널 ── */
+.inspector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.inspector .wide { grid-column: 1 / -1; }
+@media (max-width: 720px) { .inspector { grid-template-columns: minmax(0, 1fr); } }
+
+.panel-title, .sel-panel-title, .fill-panel-title { font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
+.sel-panel, .fill-panel { display: flex; flex-direction: column; gap: 12px; }
+
+.color-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.color-row .panel-title { margin-right: auto; }
+.color-item { display: flex; align-items: center; gap: 10px; background: var(--fill); border-radius: 980px; padding: 5px 14px 5px 5px; }
+.color-item label { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; order: 2; }
+.color-preview { display: none; }
+.color-hex { font-family: var(--mono); font-size: 12px; color: var(--text-3); min-width: 58px; order: 3; text-transform: uppercase; }
+
+input[type=color] {
+  -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: none; flex-shrink: 0;
+}
+input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type=color]::-webkit-color-swatch { border: none; border-radius: 50%; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.15); }
+input[type=color]::-moz-color-swatch { border: none; border-radius: 50%; }
+.color-item input[type=color] { order: 1; }
+
+.sel-status { font-size: 13px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.sel-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); opacity: 0.5; flex-shrink: 0; }
+.sel-status.active { color: var(--success); }
+.sel-status.active::before { background: var(--success); opacity: 1; }
+.sel-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sel-row input[type=text] { flex: 1; min-width: 140px; width: auto; }
+.sel-label { font-size: 13px; color: var(--text-2); white-space: nowrap; margin-right: auto; }
+
+/* 세그먼트 컨트롤 */
+.fill-modes { display: flex; padding: 2px; border-radius: 9px; background: var(--fill); }
+.mode-btn {
+  flex: 1; font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 7px; border: none;
+  background: transparent; color: var(--text); cursor: pointer; transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.mode-btn.active { background: var(--seg-active); box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04); font-weight: 600; }
+.fill-input-row { display: flex; gap: 8px; align-items: center; }
+.fill-input-row input[type=text] { flex: 1; width: auto; }
+.fill-desc { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand"><span class="logo">A</span>ASCII Studio</div>
+    <span class="nav-sub">Image → Text Art</span>
+  </div>
+</header>
+
+<main class="app">
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="card">
+        <div class="drop-zone" id="dz">
+          <input type="file" id="fi" accept="image/*">
+          <div class="dz-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
+          </div>
+          <div class="dz-title">Drop an image or click to browse</div>
+          <div class="dz-sub">PNG · JPG · WebP · GIF · Any aspect ratio</div>
+        </div>
+
+        <div class="preview-row" id="prev">
+          <img id="thumb" class="thumb" alt="">
+          <div class="file-info">
+            <p><strong id="fname"></strong></p>
+            <p id="fsize"></p>
+            <p id="fdim"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Adjust</div>
+        <div class="grid3">
+          <div class="ctrl">
+            <label>Resolution <span class="val" id="rV">120</span></label>
+            <input type="range" id="res" min="40" max="240" value="120" step="5">
+          </div>
+          <div class="ctrl">
+            <label>Contrast <span class="val" id="cV">1.4</span></label>
+            <input type="range" id="cont" min="5" max="35" value="14" step="1">
+          </div>
+          <div class="ctrl">
+            <label>Edge Strength <span class="val" id="eV">0.0</span></label>
+            <input type="range" id="edge" min="0" max="20" value="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Style</div>
+        <div class="grid2">
+          <div class="ctrl">
+            <label>Character Set</label>
+            <select id="cs">
+              <option value="dense">Dense 70 chars (finest detail)</option>
+              <option value="standard">Standard (@#S%?*+;:,.)</option>
+              <option value="blocks">Blocks (█▓▒░)</option>
+              <option value="braille">Braille (⠿⠷⠯…)</option>
+              <option value="numbers">Numbers only (0–9)</option>
+              <option value="letters">Letters only (A–Z)</option>
+              <option value="hangul">Hangul consonants</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>Color Mode</label>
+            <select id="cm">
+              <option value="dark">Black on white</option>
+              <option value="color">Full color</option>
+              <option value="green">Green terminal</option>
+              <option value="amber">Amber terminal</option>
+              <option value="blue">Blue terminal</option>
+            </select>
+          </div>
+        </div>
+        <div class="hidden-row ctrl" id="customRow">
+          <label>Custom <span class="val">dark → light</span></label>
+          <input type="text" id="customChars" value="@#%*+=-:. " placeholder="e.g. @#%*+=-:. ">
+        </div>
+      </div>
+
+      <div class="btn-row" id="convRow" style="display:none;">
+        <button class="big-btn" id="cvtBtn">Convert to ASCII</button>
+        <span class="tip">Edge 0 = no line characters · raise it to add outlines</span>
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="output-wrap" id="outWrap">
+        <div class="out-toolbar">
+          <div class="out-left">
+            <span class="out-title">Result</span>
+            <div class="picker-wrap">
+              <button class="sm-btn" id="pickerToggle">Insert Character ▾</button>
+              <div class="char-picker" id="charPicker">
+                <div class="picker-title">Click to insert at the cursor</div>
+                <div class="char-grid" id="charGrid"></div>
+              </div>
+            </div>
+          </div>
+          <div class="out-right">
+            <button class="sm-btn" id="resetBtn">Revert</button>
+            <button class="sm-btn" id="dlBtn">Save TXT</button>
+            <button class="sm-btn primary" id="copyBtn">Copy</button>
+          </div>
+        </div>
+
+        <div class="ascii-box" id="aBox">
+          <pre id="aOut" contenteditable="true" spellcheck="false"></pre>
+        </div>
+
+        <div class="edit-hint"><span>Drag across the result</span> to select, then replace text or change color below</div>
+
+        <div class="inspector">
+          <!-- Global colors -->
+          <div class="card wide">
+            <div class="color-row">
+              <span class="panel-title">Colors</span>
+              <div class="color-item">
+                <label for="bgColor">Background</label>
+                <div class="color-preview" id="bgPreview" style="background:#ffffff;"></div>
+                <input type="color" id="bgColor" value="#ffffff">
+                <span class="color-hex" id="bgHex">#ffffff</span>
+              </div>
+              <div class="color-item">
+                <label for="fgColor">Text</label>
+                <div class="color-preview" id="fgPreview" style="background:#111111;"></div>
+                <input type="color" id="fgColor" value="#111111">
+                <span class="color-hex" id="fgHex">#111111</span>
+              </div>
+              <button class="sm-btn" id="swapBtn">↕ Swap</button>
+            </div>
+          </div>
+
+          <!-- Selection editing -->
+          <div class="card sel-panel">
+            <div class="sel-panel-title">Edit Selection</div>
+            <div class="sel-status" id="selStatus">Drag across the result to select text</div>
+            <div class="sel-row">
+              <input type="text" id="selReplaceText" placeholder="Replace with this text, repeated…" maxlength="200">
+              <button class="sm-btn" id="selReplaceBtn">Replace</button>
+            </div>
+            <div class="sel-row">
+              <span class="sel-label">Selection color</span>
+              <input type="color" id="selColor" value="#ff3b30" title="Selection text color">
+              <button class="sm-btn" id="selColorBtn">Apply</button>
+              <button class="sm-btn" id="selClearColorBtn">Clear</button>
+            </div>
+          </div>
+
+          <!-- Text fill -->
+          <div class="card fill-panel">
+            <div class="fill-panel-title">Fill with Text</div>
+            <div class="fill-modes">
+              <button class="mode-btn active" id="modeOff">Off</button>
+              <button class="mode-btn" id="modeRepeat">Repeat</button>
+              <button class="mode-btn" id="modeSilhouette">Silhouette</button>
+            </div>
+            <div class="fill-input-row">
+              <input type="text" id="fillText" placeholder="e.g. LOVE, hello, abc123…" maxlength="500">
+              <button class="sm-btn primary" id="applyFillBtn">Apply</button>
+            </div>
+            <div class="fill-desc" id="fillDesc">Pick a mode, enter some text, then press Apply</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state">
+<div class="empty-art">  .:-=+*#%@@%#*+=-:.
+ :=*#@@@@@@@@@@@@#*=:
+.+%@@@#*+=--=+*#@@@%+.
+ :=*#@@@@@@@@@@@@#*=:
+  .:-=+*#%@@%#*+=-:.</div>
+        <h2>Nothing here yet</h2>
+        <p>Add an image on the left and hit Convert.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<canvas id="cv"></canvas>
+
+<script>
+const CHARS = {
+  dense:    `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`'. `.split('').reverse(),
+  standard: `@#S%?*+;:,. `.split('').reverse(),
+  blocks:   `█▓▒░ `.split('').reverse(),
+  braille:  `⠿⠷⠯⠟⠻⠽⠾⠼⠸⠰⠠ `.split('').reverse(),
+  numbers:  `9876543210 `.split('').reverse(),
+  letters:  `WMBOQDGHPUANRXKYZTSLEFJCIVU1!;:,. `.split('').reverse(),
+  hangul:   `ㅎㅍㅌㅋㅊㅈㅇㅁㄹㄷㄴㄱ `.split('').reverse(),
+};
+const ALL_CHARS = `@#$%&*()[]{}|/\\-+~=_^<>!?;:,.'"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz█▓▒░⠿⠷⠯⠟★☆♦♠♣♥•°ΩΔΣΨΦαβγδ`.split('');
+
+let curFile = null, origContent = null, savedRange = null, lastPlainGrid = null, fillMode = 'off';
+let lastSelRange = null; // 마지막으로 선택된 Range (선택 해제 후에도 보존)
+
+const dz = document.getElementById('dz');
+const fi = document.getElementById('fi');
+const aOut = document.getElementById('aOut');
+const aBox = document.getElementById('aBox');
+const cv = document.getElementById('cv');
+const ctx2 = cv.getContext('2d');
+const charPicker = document.getElementById('charPicker');
+const bgColorEl = document.getElementById('bgColor');
+const fgColorEl = document.getElementById('fgColor');
+const bgPreview = document.getElementById('bgPreview');
+const fgPreview = document.getElementById('fgPreview');
+const bgHex = document.getElementById('bgHex');
+const fgHex = document.getElementById('fgHex');
+const selStatus = document.getElementById('selStatus');
+
+/* ── 슬라이더 라벨 ── */
+[['res','rV',1,0],['cont','cV',0.1,1],['edge','eV',0.1,1]].forEach(([id,out,scale,dec]) => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById(out).textContent = (this.value * scale).toFixed(dec);
+  });
+});
+/* ── 슬라이더 채움 표시 (iOS 스타일) ── */
+document.querySelectorAll('input[type=range]').forEach(el => {
+  const setP = () => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
+  el.addEventListener('input', setP); setP();
+});
+document.getElementById('cs').addEventListener('change', function() {
+  document.getElementById('customRow').classList.toggle('on', this.value === 'custom');
+});
+
+/* ── 문자 삽입 팔레트 ── */
+ALL_CHARS.forEach(ch => {
+  const btn = document.createElement('div');
+  btn.className = 'char-btn';
+  btn.textContent = ch;
+  btn.addEventListener('mousedown', e => { e.preventDefault(); insertChar(ch); });
+  document.getElementById('charGrid').appendChild(btn);
+});
+document.getElementById('pickerToggle').addEventListener('click', e => {
+  e.stopPropagation(); charPicker.classList.toggle('on');
+});
+document.addEventListener('click', () => charPicker.classList.remove('on'));
+charPicker.addEventListener('click', e => e.stopPropagation());
+
+aOut.addEventListener('keyup', saveRange);
+aOut.addEventListener('mouseup', saveRange);
+aOut.addEventListener('focus', saveRange);
+
+function saveRange() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+}
+function insertChar(ch) {
+  aOut.focus();
+  const sel = window.getSelection();
+  if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
+  if (sel.rangeCount) {
+    const r = sel.getRangeAt(0);
+    r.deleteContents();
+    r.insertNode(document.createTextNode(ch));
+    r.collapse(false);
+    savedRange = r.cloneRange();
+  }
+}
+
+/* ── 선택 영역 감지 ── */
+// aOut 안에서 드래그로 선택하면 lastSelRange에 저장
+aOut.addEventListener('mouseup', updateSelectionStatus);
+aOut.addEventListener('keyup', updateSelectionStatus);
+
+function updateSelectionStatus() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  // aOut 안에 있는 선택인지 확인
+  if (!aOut.contains(range.commonAncestorContainer)) return;
+  const text = sel.toString();
+  if (text.length === 0) return;
+  lastSelRange = range.cloneRange();
+  selStatus.textContent = `${text.length} characters selected`;
+  selStatus.className = 'sel-status active';
+}
+
+// 버튼 클릭 전에 선택이 날아가지 않도록 mousedown에서 preventDefault
+['selReplaceBtn','selColorBtn','selClearColorBtn'].forEach(id => {
+  document.getElementById(id).addEventListener('mousedown', e => e.preventDefault());
+});
+
+/* ── 선택 영역 → 텍스트 교체 ── */
+document.getElementById('selReplaceBtn').addEventListener('click', () => {
+  if (!lastSelRange) { selStatus.textContent = 'Drag across the result to select text first'; return; }
+  const newText = document.getElementById('selReplaceText').value;
+  if (!newText) { selStatus.textContent = 'Enter the replacement text'; return; }
+
+  // 선택된 텍스트 길이만큼 newText를 반복해서 채움 (공백은 공백 유지)
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(lastSelRange);
+
+  const selectedText = sel.toString();
+  const chars = newText.split('');
+  let charIdx = 0;
+  let result = '';
+  for (let i = 0; i < selectedText.length; i++) {
+    if (selectedText[i] === '\n') {
+      result += '\n';
+    } else if (selectedText[i] === ' ') {
+      result += ' ';
+    } else {
+      result += chars[charIdx % chars.length];
+      charIdx++;
+    }
+  }
+
+  // Range 안에 span으로 감싸서 삽입 (색상 보존 가능하게)
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const span = document.createElement('span');
+  span.textContent = result;
+  range.insertNode(span);
+
+  // span을 풀어서 일반 텍스트로 (부모 색상 그대로 따름)
+  const parent = span.parentNode;
+  while (span.firstChild) parent.insertBefore(span.firstChild, span);
+  parent.removeChild(span);
+
+  selStatus.textContent = `Done — ${charIdx} characters replaced`;
+  lastSelRange = null;
+});
+
+/* ── 선택 영역 → 글씨색 변경 ── */
+document.getElementById('selColorBtn').addEventListener('click', () => {
+  if (!lastSelRange) { selStatus.textContent = 'Drag across the result to select text first'; return; }
+  const color = document.getElementById('selColor').value;
+
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(lastSelRange);
+
+  applyColorToSelection(color);
+  selStatus.textContent = `Color applied (${color})`;
+  lastSelRange = null;
+});
+
+document.getElementById('selClearColorBtn').addEventListener('click', () => {
+  if (!lastSelRange) { selStatus.textContent = 'Drag across the result to select text first'; return; }
+
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(lastSelRange);
+
+  applyColorToSelection(''); // 빈 문자열 = 색상 제거 (부모 색 따름)
+  selStatus.textContent = 'Color cleared (back to the global text color)';
+  lastSelRange = null;
+});
+
+function applyColorToSelection(color) {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+
+  // 선택 영역을 span으로 감싸기
+  // execCommand('foreColor') 는 일부 브라우저에서 font 태그를 만들므로, 직접 처리
+  const fragment = range.extractContents();
+
+  // fragment 안의 모든 텍스트 노드를 span으로 래핑
+  const wrapper = document.createElement('span');
+  if (color) wrapper.style.color = color;
+
+  // fragment 안에 기존 span들이 있을 수 있으므로 flatten 후 재래핑
+  const plainText = fragment.textContent;
+  wrapper.textContent = plainText;
+
+  range.insertNode(wrapper);
+  sel.removeAllRanges();
+}
+
+/* ── 드래그 앤 드롭 / 파일 로드 ── */
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+fi.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  curFile = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('thumb').src = url;
+  document.getElementById('fname').textContent = file.name;
+  document.getElementById('fsize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  const tmp = new Image();
+  tmp.onload = () => { document.getElementById('fdim').textContent = tmp.naturalWidth + ' × ' + tmp.naturalHeight + ' px'; };
+  tmp.src = url;
+  document.getElementById('prev').classList.add('on');
+  document.getElementById('convRow').style.display = 'flex';
+  document.getElementById('outWrap').classList.remove('on');
+}
+
+/* ── 변환 ── */
+document.getElementById('cvtBtn').addEventListener('click', convert);
+
+function clamp(v) { return Math.max(0, Math.min(255, v)); }
+
+function getSobel(gray, w, h) {
+  const gx = new Float32Array(w * h), gy = new Float32Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const tl=gray[(y-1)*w+(x-1)], tm=gray[(y-1)*w+x], tr=gray[(y-1)*w+(x+1)];
+      const ml=gray[y*w+(x-1)], mr=gray[y*w+(x+1)];
+      const bl=gray[(y+1)*w+(x-1)], bm=gray[(y+1)*w+x], br=gray[(y+1)*w+(x+1)];
+      gx[i] = -tl - 2*ml - bl + tr + 2*mr + br;
+      gy[i] = -tl - 2*tm - tr + bl + 2*bm + br;
+    }
+  }
+  return { gx, gy };
+}
+
+function convert() {
+  if (!curFile) return;
+  const img = new Image();
+  img.onload = () => {
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const cols = parseInt(document.getElementById('res').value);
+    const charAspect = 6.5 / (6.5 * 0.6);
+    const rows = Math.max(4, Math.round((H / W) * cols / charAspect));
+
+    cv.width = cols; cv.height = rows;
+    ctx2.imageSmoothingEnabled = true;
+    ctx2.imageSmoothingQuality = 'high';
+    ctx2.drawImage(img, 0, 0, cols, rows);
+
+    const px = ctx2.getImageData(0, 0, cols, rows).data;
+    const contrast = parseFloat(document.getElementById('cont').value) / 10;
+    const edgeStr  = parseFloat(document.getElementById('edge').value) / 10;
+    const colorMode = document.getElementById('cm').value;
+    const csVal = document.getElementById('cs').value;
+    let charSet = csVal === 'custom'
+      ? (document.getElementById('customChars').value.trim().split('').length > 1
+          ? document.getElementById('customChars').value.trim().split('') : CHARS.dense)
+      : CHARS[csVal];
+
+    const gray = new Float32Array(cols * rows);
+    const rArr = new Uint8Array(cols * rows);
+    const gArr = new Uint8Array(cols * rows);
+    const bArr = new Uint8Array(cols * rows);
+
+    for (let i = 0; i < cols * rows; i++) {
+      const pi = i * 4;
+      const r = clamp((px[pi]   - 128) * contrast + 128);
+      const g = clamp((px[pi+1] - 128) * contrast + 128);
+      const b = clamp((px[pi+2] - 128) * contrast + 128);
+      rArr[i]=r; gArr[i]=g; bArr[i]=b;
+      gray[i] = 0.299*r + 0.587*g + 0.114*b;
+    }
+
+    const { gx, gy } = getSobel(gray, cols, rows);
+    const edgeThresh = edgeStr === 0 ? Infinity : 255 * (1 - edgeStr) * 1.8;
+
+    function pickChar(i) {
+      if (edgeStr > 0) {
+        const mag = Math.sqrt(gx[i]*gx[i] + gy[i]*gy[i]);
+        if (mag > edgeThresh) {
+          const a = ((Math.atan2(gy[i], gx[i]) * 180 / Math.PI) % 180 + 180) % 180;
+          return a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/';
+        }
+      }
+      const ci = Math.min(charSet.length - 1, Math.floor((gray[i] / 255) * (charSet.length - 1)));
+      return charSet[ci];
+    }
+
+    lastPlainGrid = { rows, cols, gray, pickChar };
+
+    const bgColor = (colorMode === 'green' || colorMode === 'amber' || colorMode === 'blue') ? '#0f0f0f' : '#ffffff';
+    const fgMap = { dark: '#111111', green: '#39ff14', amber: '#ffb300', blue: '#4fc3f7' };
+    aBox.style.background = bgColor;
+
+    if (colorMode === 'color') {
+      let html = '';
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const i = y * cols + x;
+          const ch = pickChar(i);
+          const safe = ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':ch;
+          html += `<span style="color:rgb(${rArr[i]},${gArr[i]},${bArr[i]})">${safe}</span>`;
+        }
+        html += '\n';
+      }
+      aOut.innerHTML = html;
+      aOut.style.color = '';
+    } else {
+      let out = '';
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) out += pickChar(y * cols + x);
+        out += '\n';
+      }
+      aOut.textContent = out;
+      aOut.style.color = fgMap[colorMode] || '#111111';
+    }
+
+    origContent = { html: aOut.innerHTML, color: aOut.style.color, bg: bgColor };
+    document.getElementById('outWrap').classList.add('on');
+    lastSelRange = null;
+    selStatus.textContent = 'Drag across the result to select text';
+    selStatus.className = 'sel-status';
+
+    const resolvedFg = aOut.style.color || '#111111';
+    bgColorEl.value = bgColor;
+    fgColorEl.value = /^#/.test(resolvedFg) ? resolvedFg : '#111111';
+    bgPreview.style.background = bgColor;
+    fgPreview.style.background = fgColorEl.value;
+    bgHex.textContent = bgColor;
+    fgHex.textContent = fgColorEl.value;
+  };
+  img.src = URL.createObjectURL(curFile);
+}
+
+/* ── 전체 색상 피커 ── */
+function applyBg(hex) { aBox.style.background = hex; bgPreview.style.background = hex; bgHex.textContent = hex; }
+function applyFg(hex) {
+  if (aOut.style.color !== '') aOut.style.color = hex;
+  else aOut.querySelectorAll('span[style]').forEach(s => s.style.color = hex);
+  fgPreview.style.background = hex;
+  fgHex.textContent = hex;
+}
+bgColorEl.addEventListener('input', function() { applyBg(this.value); });
+fgColorEl.addEventListener('input', function() { applyFg(this.value); });
+document.getElementById('swapBtn').addEventListener('click', () => {
+  const ob = bgColorEl.value, of = fgColorEl.value;
+  bgColorEl.value = of; fgColorEl.value = ob;
+  applyBg(of); applyFg(ob);
+});
+
+/* ── 전체 텍스트 채우기 ── */
+const modeDescs = {
+  off: 'Pick a mode, enter some text, then press Apply',
+  repeat: 'Replaces every character with your text, repeated in order',
+  silhouette: 'Fills only the dark areas (silhouette) with your text and leaves light areas blank',
+};
+['modeOff','modeRepeat','modeSilhouette'].forEach((btnId, i) => {
+  const modes = ['off','repeat','silhouette'];
+  document.getElementById(btnId).addEventListener('click', () => {
+    fillMode = modes[i];
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(btnId).classList.add('active');
+    document.getElementById('fillDesc').textContent = modeDescs[fillMode];
+  });
+});
+document.getElementById('applyFillBtn').addEventListener('click', () => {
+  if (!lastPlainGrid) return;
+  if (fillMode === 'off') { if (origContent) { aOut.innerHTML = origContent.html; aOut.style.color = origContent.color; } return; }
+  const rawText = document.getElementById('fillText').value.trim();
+  if (!rawText) { document.getElementById('fillDesc').textContent = '⚠ Please enter some text'; return; }
+  const { rows, cols, gray, pickChar } = lastPlainGrid;
+  const textChars = rawText.replace(/\s+/g, ' ').split('');
+  let out = '', textIdx = 0;
+  if (fillMode === 'repeat') {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const orig = pickChar(y * cols + x);
+        if (orig === ' ') { out += ' '; } else { out += textChars[textIdx % textChars.length]; textIdx++; }
+      }
+      out += '\n';
+    }
+  } else {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (gray[y * cols + x] < 140) { out += textChars[textIdx % textChars.length]; textIdx++; } else { out += ' '; }
+      }
+      out += '\n';
+    }
+  }
+  aOut.textContent = out;
+  aOut.style.color = fgColorEl.value || '#111111';
+  document.getElementById('fillDesc').textContent = `Done — ${textIdx} characters used`;
+});
+
+/* ── 복사 / 저장 / 리셋 ── */
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = aOut.innerText || aOut.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copyBtn');
+    b.textContent = 'Copied!'; setTimeout(() => b.textContent = 'Copy', 1400);
+  });
+});
+document.getElementById('dlBtn').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([aOut.innerText||aOut.textContent], {type:'text/plain'}));
+  a.download = 'ascii_art.txt'; a.click();
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!origContent) return;
+  aOut.innerHTML = origContent.html;
+  aOut.style.color = origContent.color;
+  aBox.style.background = origContent.bg;
+  bgColorEl.value = origContent.bg;
+  fgColorEl.value = /^#/.test(origContent.color) ? origContent.color : '#111111';
+  bgPreview.style.background = origContent.bg;
+  fgPreview.style.background = fgColorEl.value;
+  bgHex.textContent = origContent.bg;
+  fgHex.textContent = fgColorEl.value;
+  lastSelRange = null;
+  selStatus.textContent = 'Drag across the result to select text';
+  selStatus.className = 'sel-status';
+});
+</script>
+</body>
+</html>
